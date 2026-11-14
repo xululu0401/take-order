@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>这单接不接 · 一单拆成到手、车钱和时间，看够不够你的时薪</title>
+<meta name="description" content="跑网约车、代驾、跑腿时弹出一单：填订单价、接驾、行程、回空的公里和分钟，扣掉平台抽成和每公里的车钱，算出这单净赚多少、花多久、每小时合多少，和你的目标时薪比，告诉你接不接、至少要多少钱才值、接驾最远多远还值。">
+<style>
+  :root{
+    --bg:#f3f2ee; --card:#fff; --ink:#1d1f24; --ink2:#4d525c; --mut:#80858f; --line:#e1dfd8;
+    --ok:#1f7a4d; --ok2:#e3f2ea; --low:#a86a12; --low2:#fbf0dc; --no:#b13a2b; --no2:#f8e1dc;
+    --cut:#9aa0ab; --car:#c58b4a; --net:#1f7a4d; --emp:#d6b98f; --ride:#3d6fb3;
+    --sh:0 1px 2px rgba(29,31,36,.06),0 6px 18px rgba(29,31,36,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font:16px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:960px;margin:0 auto;padding:22px 16px 72px}
+  h1{font-size:30px;line-height:1.25;margin:0 0 6px}
+  .sub{color:var(--ink2);margin:0;font-size:15.5px}
+  .muted{color:var(--mut);font-size:13.5px}
+  .hide{display:none !important}
+  button{font:inherit;cursor:pointer}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}
+  .chip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 13px;font-size:13.5px;color:var(--ink2);text-align:left}
+  .chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--sh);padding:16px;margin:14px 0;min-width:0}
+  .card h2{font-size:17px;margin:0 0 10px}
+  .f{min-width:0}
+  .f label{display:block;font-size:12.5px;color:var(--ink2);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .f input{width:100%;font:15px/1.4 ui-monospace,Menlo,monospace;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);min-width:0}
+  .f.txt input{font-family:inherit;font-size:14.5px}
+  .f.bad input{border-color:var(--no);background:#fff4f1}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(140px,100%),1fr));gap:9px}
+  .btn{background:var(--ink);border:1px solid var(--ink);color:#fff;border-radius:9px;padding:7px 12px;font-size:14px}
+  .btn.ghost{background:#fff;color:var(--ink)}
+  .btn.mini{padding:5px 10px;font-size:13px}
+  .bar{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center}
+  .box{border-radius:10px;padding:10px 12px;font-size:14.5px;margin:10px 0;overflow-wrap:anywhere}
+  .box.bad{background:var(--no2);color:#6b2416;border:1px solid #f0c7bd}
+  .box.warn{background:#f7f3e2;color:#5a4b14;border:1px solid #e6dcb2}
+  .box ul{margin:4px 0 0;padding-left:20px}
+
+  .sum{display:flex;flex-wrap:wrap;gap:6px 26px;align-items:baseline;margin:0 0 6px}
+  .sum .big{font-size:36px;font-weight:700;line-height:1.1}
+  .sum .big small{font-size:16px;color:var(--ink2);font-weight:400;margin-left:4px}
+  .sum .how{flex-basis:100%;font-size:14px;color:var(--ink2)}
+  #saveTag{font-size:12.5px;color:var(--mut);font-weight:400}
+
+  /* 每单一张卡：结论章 + 钱条 + 时间条 */
+  .tickets{display:grid;gap:12px;margin-top:8px}
+  .tk{border:1px solid var(--line);border-left:6px solid var(--mut);border-radius:12px;padding:12px 14px;min-width:0}
+  .tk.take{border-left-color:var(--ok)} .tk.low{border-left-color:var(--low)} .tk.loss{border-left-color:var(--no)}
+  .tk .top{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline}
+  .tk .nm{font-weight:700;font-size:16.5px;overflow-wrap:anywhere;min-width:0}
+  .tk .stamp{font-size:13px;font-weight:700;border-radius:6px;padding:1px 8px}
+  .tk.take .stamp{background:var(--ok2);color:var(--ok)} .tk.low .stamp{background:var(--low2);color:var(--low)} .tk.loss .stamp{background:var(--no2);color:var(--no)}
+  .tk .ph{margin-left:auto;font:700 18px ui-monospace,Menlo,monospace;white-space:nowrap}
+  .tk .ph small{font:13px -apple-system,"PingFang SC",sans-serif;color:var(--mut);margin-left:3px}
+  .tk .line{font-size:13.5px;color:var(--ink2);margin-top:4px;overflow-wrap:anywhere}
+  .tk .line b{color:var(--ink)}
+  .strip{display:flex;height:16px;border-radius:5px;overflow:hidden;margin-top:6px;background:#f1efe9}
+  .strip span{display:block;height:100%;min-width:0}
+  .lg{display:flex;flex-wrap:wrap;gap:2px 12px;font-size:12px;color:var(--mut);margin-top:3px}
+  .lg i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;transform:translateY(1px)}
+  .acts{display:grid;gap:8px;margin-top:6px}
+  .act{text-align:left;background:var(--ok2);border:1px solid #bfe0cd;color:#174d33;border-radius:10px;padding:9px 12px;font-size:14px;overflow-wrap:anywhere}
+  .act small{display:block;color:var(--mut);font-size:12.5px}
+
+  .ord{border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0;display:grid;grid-template-columns:minmax(0,1.4fr) repeat(5,minmax(0,1fr)) auto;gap:8px;align-items:end}
+  @media (max-width:720px){ .ord{grid-template-columns:repeat(2,minmax(0,1fr))} .ord .f.txt{grid-column:1/-1} }
+  .ord .del{background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px;color:var(--no)}
+  .foot{margin-top:18px;font-size:13.5px;color:var(--mut)}
+  .foot li{margin:3px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>这单接不接</h1>
+    <p class="sub">手机上弹出一单，几秒内要决定。把订单价、接驾、行程、回空填进来，扣掉平台抽成和每公里的车钱，看这单每小时合多少，够不够你给自己定的时薪；不够的话，告诉你至少要多少钱、接驾最远多远才值。</p>
+    <div class="chips" id="presets"></div>
+    <p class="muted" id="presetNote"></p>
+  </header>
+
+  <div id="errBox" class="box bad hide"></div>
+
+  <section class="card" id="resCard">
+    <h2>这几单 <span id="saveTag"></span></h2>
+    <div class="sum">
+      <div><div class="muted">值得接</div><div class="big" id="takeN"></div></div>
+      <div><div class="muted">只接这几单，每小时净赚</div><div class="big" id="perHourN"></div></div>
+      <div class="how" id="howN"></div>
+    </div>
+    <div class="tickets" id="tickets"></div>
+    <div id="actsBlock"><h2 style="margin:14px 0 0;font-size:15px">改一项看看（每条只改这一单的一个数，点一下就写进下面重算）</h2><div class="acts" id="acts"></div></div>
+    <div id="warnBox" class="box warn hide"></div>
+  </section>
+
+  <section class="card">
+    <h2>你自己的账</h2>
+    <div class="grid" id="form">
+      <div class="f" id="f_cut"><label for="cut">平台抽成 %</label><input id="cut" data-k="cut" inputmode="decimal"></div>
+      <div class="f" id="f_cpk"><label for="cpk">每公里成本 元</label><input id="cpk" data-k="cpk" inputmode="decimal"></div>
+      <div class="f" id="f_v"><label for="v">空车车速 km/h</label><input id="v" data-k="v" inputmode="decimal"></div>
+      <div class="f" id="f_goal"><label for="goal">目标时薪 元/小时</label><input id="goal" data-k="goal" inputmode="decimal"></div>
+    </div>
+    <p class="muted">抽成填你对账看到的实际比例（订单价里平台拿走的那部分）。每公里成本是油费或电费，加上折旧、保养、保险摊到每公里，自己估一个数。空车车速只用来把接驾和回空的公里换成分钟。目标时薪是扣完抽成和车钱以后，你觉得一小时至少要落袋多少。</p>
+  </section>
+
+  <section class="card">
+    <h2>弹出来的单</h2>
+    <div id="orders"></div>
+    <div class="bar"><button type="button" class="btn mini ghost" id="addOrder">＋ 再加一单</button><span class="muted" id="orderCount"></span></div>
+    <p class="muted">接驾是从你现在的位置开到上车点的公里；行程的公里和分钟看订单页面上的预估；回空是送到偏的地方以后、大概率要空车开回来的公里，市区内顺路能接到下一单就填 0。</p>
+  </section>
+
+  <section class="card">
+    <div class="bar" style="margin:0">
+      <button type="button" class="btn mini" id="dlCsv">下载 CSV</button>
+      <button type="button" class="btn mini" id="dlMd">下载 MD</button>
+      <button type="button" class="btn mini" id="dlPng">下载结果卡 PNG</button>
+      <button type="button" class="btn mini ghost" id="dlJson">备份 JSON</button>
+      <button type="button" class="btn mini ghost" id="impJson">从 JSON 恢复</button>
+      <button type="button" class="btn mini ghost" id="reset">恢复默认</button>
+      <input type="file" id="impFile" accept="application/json,.json" class="hide">
+    </div>
+    <p class="muted" style="margin:8px 0 0">输入会自动存到这台设备的浏览器里，刷新还在；换设备用 JSON 备份。</p>
+  </section>
+
+  <ul class="foot">
+    <li>到手 = 订单价 × (1 − 抽成%)；车钱 = (接驾 + 行程 + 回空) 公里 × 每公里成本；净赚 = 到手 − 车钱。</li>
+    <li>用时 = (接驾 + 回空) 公里 ÷ 空车车速 + 行程分钟；每小时净赚 = 净赚 ÷ 用时 × 60；按目标该挣 = 目标时薪 × 用时 ÷ 60。净赚不少于该挣的就算「值」，净赚小于 0 是「倒贴」。</li>
+    <li>至少要多少钱 = (该挣的 + 车钱) ÷ (1 − 抽成%)；接驾最远多远 = 让净赚正好等于该挣的那个接驾公里，向下取到 0.1 km。</li>
+    <li>没算的：等单的时间、高峰加价和奖励、平台的真实计价和抽成规则、取消和差评的风险、过路费和停车费。本页不联网，不知道任何平台的规则；默认场景是虚构的，结果是估算。</li>
+  </ul>
+</div>
+<script src="./core.js"></script>
+<script src="./ui.js"></script>
+</body>
+</html>
